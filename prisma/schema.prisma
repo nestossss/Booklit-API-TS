@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model genero {
+  idgenero     Int            @id @unique(map: "idgenero") @default(autoincrement()) @db.UnsignedInt
+  nome         String         @db.VarChar(45) @unique(map: "nomegenero")
+  livros       livro[]
+}
+
+model streak {
+  idstreak    Int      @unique(map: "idstreak") @default(autoincrement()) @db.UnsignedInt
+  primeiroDia DateTime @db.Date
+  ultimoDia   DateTime @db.Date
+  idLeitor    Int      @db.UnsignedInt 
+  leitor      leitor   @relation(fields: [idLeitor], references: [idleitor], onUpdate: Restrict, map: "fk_streak_leitor1")
+
+  @@id([idstreak, idLeitor])
+  @@index([idLeitor], map: "fk_streak_leitor1_idx")
+}
+
+model leitor {
+  idleitor       Int              @id @unique(map: "idleitor") @default(autoincrement()) @db.UnsignedInt
+  nome           String           @db.VarChar(100)
+  username       String           @unique(map: "username") @db.VarChar(45)
+  email          String           @unique(map: "email") @db.VarChar(45)
+  senha          String           @db.VarChar(45)
+  meta_diaria    Int              @default(0) @db.UnsignedInt
+  create_time    DateTime         @db.Timestamp(0)
+  registro_livro registro_livro[]
+  resenhas       resenha[]
+  streak         streak[]
+}
+
+model livro {
+  idlivro        Int              @id @unique(map: "idlivro") @default(autoincrement()) @db.UnsignedInt
+  temBookUrl     Boolean          @db.TinyInt
+  bookUrl        String           @unique(map: "bookUrl") @db.VarChar(90)
+  titulo         String           @db.VarChar(45)
+  sinopse        String           @db.MediumText
+  autores        autores[]
+  generos        genero[]
+  registro_livro registro_livro[]
+  resenha        resenha[]
+}
+
+model autores {
+  idautor       Int       @id @unique(map: "idautor") @default(autoincrement())  @db.UnsignedInt                     
+  nome          String    @db.VarChar(90)
+  idlivro       Int       @db.UnsignedInt
+  livro         livro     @relation(fields: [idlivro], references: [idlivro], onUpdate: Restrict, map: "fk_autor_livro")
+}
+
+model registro_livro {
+  paginas_lidas    Int      @default(0) @db.UnsignedInt
+  tempo_lido       Int      @default(0) @db.UnsignedInt
+  idlivro          Int      @db.UnsignedInt
+  idleitor         Int      @db.UnsignedInt
+  leitor           leitor   @relation(fields: [idleitor], references: [idleitor], onUpdate: Restrict, map: "fk_leitor")
+  livro            livro    @relation(fields: [idlivro], references: [idlivro], onUpdate: Restrict, map: "fk_livro")
+
+  @@id([idlivro, idleitor])
+  @@index([idleitor], map: "fk_leitor_idx")
+  @@index([idlivro], map: "fk_livro")
+}
+
+model resenha {
+  idresenha       Int      @unique(map: "idresenha") @default(autoincrement()) @db.UnsignedInt
+  resenha         String   @db.VarChar(300)
+  create_time     DateTime @db.DateTime(0)
+  livro_idlivro   Int      @db.UnsignedInt
+  leitor_idleitor Int      @db.UnsignedInt
+  leitor          leitor   @relation(fields: [leitor_idleitor], references: [idleitor], onUpdate: Restrict, map: "fk_resenha_leitor1")
+  livro           livro    @relation(fields: [livro_idlivro], references: [idlivro], onUpdate: Restrict, map: "fk_resenha_livro1")
+
+  @@id([idresenha, livro_idlivro, leitor_idleitor])
+  @@index([leitor_idleitor], map: "fk_resenha_leitor1_idx")
+  @@index([livro_idlivro], map: "fk_resenha_livro1_idx")
+}
+
