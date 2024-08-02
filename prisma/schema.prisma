@@ -43,7 +43,8 @@ model livro {
   bookUrl        String           @unique(map: "bookUrl") @db.VarChar(90)
   titulo         String           @db.VarChar(45)
   sinopse        String           @db.MediumText
-  autores        autores[]
+  totalPag       Int              @db.UnsignedInt @default(dbgenerated("10"))
+  autores        autores[] 
   generos        genero[]
   registro_livro registro_livro[]
   resenha        resenha[]
