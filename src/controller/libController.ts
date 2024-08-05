@@ -1,19 +1,90 @@
 import { libModel } from "../model/libModel";
+
 const googleKey = process.env.GOOGLE_API_KEY;
+
+interface BookCreate {
+    titulo: string,
+    desc: string,
+    numPag: number, 
+    generos?: Array<string>, 
+    autores?: Array<string>
+}
+
+interface Book{
+    autores?: {
+        nome: string;
+    }[] | Array<string>;
+    generos?: {
+        nome: string;
+    }[] | Array<string>;
+
+    idlivro: number;
+    temBookUrl: boolean;
+    bookUrl: string | null;
+    titulo: string;
+    sinopse: string;
+    totalPag: number;
+}
+
+async function getLibrary(userId: number){
+    let response = await libModel.getLibrary(userId);
+    if(response){
+        let formatedData = response.map( (data) => {
+            let livro: Book = data.livro;
+            if(livro.autores && livro.autores.length > 0){
+                livro.autores = livro.autores.map( (autor) => {
+                    if(typeof autor != "string"){
+                        return autor.nome;
+                    }
+                    return autor
+                });
+            } else {
+                delete livro.autores;
+            }
+            if(livro.generos && livro.generos.length > 0){
+                livro.generos = livro.generos.map( (genero) => {
+                    if(typeof genero != "string"){
+                        return genero.nome;
+                    }
+                    return genero;
+                });
+            } else {
+                delete livro.generos
+            }
+            return {
+                livro,
+                "paginasLidas": data.paginas_lidas,
+                "tempoLido": data.tempo_lido,
+            }
+        });
+        return { 
+            "status": 200,
+            "biblioteca": formatedData,
+        }
+    }
+    if(response == null){
+        return {
+            "status": 400,
+            "message": "Nenhum registro encontrado"
+        }
+    }
+    return { 
+        "status": 500,
+        "erro": "Pane no sistema"
+    }
+}
 
 async function addBookExistente(bookUrl: string, userId: number){
     try{
-        var bookExists = await (await fetch(`https://www.googleapis.com/books/v1/volumes/${bookUrl}?key=${googleKey}`)).json();
-        let generos = bookExists.volumeInfo.categories[0].split(' / ');
-        let autores = bookExists.volumeInfo.authors;
-        let titulo = bookExists.volumeInfo.title;
-        let desc = bookExists.volumeInfo.description;
-        let numPag = bookExists.volumeInfo.pageCount;
-        console.log(titulo, autores, generos, numPag);
+        let response = await fetch(`https://www.googleapis.com/books/v1/volumes/${bookUrl}?key=${googleKey}`).catch( (err) => undefined);
+        let bookExists = await response?.json();
+        let categories = bookExists?.volumeInfo.categories[0].split(' / ');
+        let { authors, title, description, pageCount } = bookExists?.volumeInfo;
+        console.log(title, authors, categories, pageCount);
 
         if(bookExists){
             //bookExists.volumeInfo.title
-            let registro = await libModel.insertBook(userId, titulo, desc, autores, generos, numPag, bookUrl);
+            let registro = await libModel.insertBook(userId, title, description, pageCount, authors, categories, bookUrl);
             if(!registro) {
                 console.log("Registro não criado, provavelmente já existe :)");
                 return{
@@ -31,21 +102,33 @@ async function addBookExistente(bookUrl: string, userId: number){
             "status": 400,
             "message": "ID não existe no Google Books",
         }
-    }
-    catch (err){
+    } catch (err) {
         return {
             "status": 500,
             "erro": err,
-            "message": "nem ideia do erro, mas, pane no sistema :)",
+            "message": "nem ideia do erro, mas, pane no sistema"
         }
     }
 }
 
+// async function addBookNovo(bookInfo: BookCreate, userId: number){
+//     try{
+//         let{ titulo, desc, numPag, autores, generos} = bookInfo
+//         let book = libModel.insertBook(userId, titulo, desc, numPag, autores, generos, undefined);
+
+//     } catch {
+
+//     }
+// }
+
 async function updateRegistro(livroId: number, userId: number, paginasLidas: number, tempoLido: number){
     try{
-        let registro = await libModel.updateRegistro(tempoLido, paginasLidas, livroId, userId);
+        let registro = await libModel.updateRegistro({
+            paginas_lidas: paginasLidas, tempo_lido: tempoLido,
+        }, livroId, userId);
+
         if(registro){
-            return await registroTemplate(registro);
+            return registroTemplate(registro);
         }
         if(registro == null){
             return {
@@ -61,7 +144,9 @@ async function updateRegistro(livroId: number, userId: number, paginasLidas: num
 
 async function updatePagLidas(livroId: number, userId: number, paginasLidas: number){
     try{
-        let registro = await libModel.updatePagLidas(paginasLidas, livroId, userId);
+        let registro = await libModel.updateRegistro({
+            paginas_lidas: paginasLidas,
+        }, livroId, userId);
         if(registro){
             return await registroTemplate(registro);
         }
@@ -79,14 +164,17 @@ async function updatePagLidas(livroId: number, userId: number, paginasLidas: num
 
 async function updateTempoLido(livroId: number, userId: number, tempoLido: number){
     try{
-        let registro = await libModel.updateTempoLido(tempoLido, livroId, userId)
+        let registro = await libModel.updateRegistro({
+            tempo_lido: tempoLido,
+        }, livroId, userId);
         if(registro){
-            return await registroTemplate(registro);
+            return registroTemplate(registro);
         }
         if(registro == null){
             return {
                 "status": 200,
-                "message": "Não foi possível atualizar o registro",
+                "erro": "Não foi possível atualizar o registro",
+                "motivo": "Registro não existe ou número de páginas excedido"
             }
         }
         return "erro"
@@ -95,14 +183,45 @@ async function updateTempoLido(livroId: number, userId: number, tempoLido: numbe
     }
 };
 
-async function removeBook(){}
+async function removeBook(livroId: number, userId: number){
+    try{
+        let removido = await libModel.removeBook(livroId, userId);
+        if(removido){
+            return {
+                "status": 200,
+                "message": `Registro de ${removido.livro.titulo} removido`,
+                "registroRemovido": removido,
+            }
+        }
+        if(removido == null){
+            return {
+                "status": 200,
+                "erro": "Não foi possível remover o registro",
+                "motivo": "Registro não existe"
+            }
+        }
+        return {
+            "status": 500,
+            "erro": "Pane no sistema",
+        }
+    } catch (err){
+        console.log(err);
+    }
+}
 
-async function addBookNovo(){}  // opcional - 2
 
-
+export const libController = {
+    getLibrary,
+    addBookExistente,
+    // addBookNovo,
+    updateRegistro,
+    updateTempoLido,
+    updatePagLidas,
+    removeBook,
+}
 
 /*  utilidade - utilidade - utilidade - utilidade - utilidade */ 
-async function registroTemplate(registro: any){
+function registroTemplate(registro: any){
     return {
         "status": 200,
         "registro": {
@@ -117,15 +236,6 @@ async function registroTemplate(registro: any){
         },
         "message": "Registro atualizado",
     }
-}
-
-export const libController = {
-    addBookExistente,
-    addBookNovo,
-    updateRegistro,
-    updateTempoLido,
-    updatePagLidas,
-    removeBook,
 }
 
 

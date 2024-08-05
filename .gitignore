@@ -7,4 +7,5 @@ node_modules/
 #funcao q eu tirei, vai q eu uso em alguma hora 
 backup_funcoes/
 
-src/model/teste.ts
+
+src/model/sandbox.ts

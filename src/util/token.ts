@@ -9,6 +9,7 @@ const setToken = (userId: number, key: string): string | false => {
     return false;
 }
 
+
 const decToken = (token: string, key: string): number | false => {
     try {
         let dec = jwt.verify(token, key);
@@ -21,6 +22,7 @@ const decToken = (token: string, key: string): number | false => {
     }
 }
 
+// middleware de verificacao
 function checkToken(req: Request, res: Response, next: NextFunction){
     if(!SECRET_KEY)
         return res.status(500).send("pane no system");

@@ -1,7 +1,6 @@
 import prisma from "./client/dbclient";
-import { booksModel } from './booksModel'
-const getLivro = booksModel.getLivro;
-
+import { findBook, getBook, newBook } from './booksModel'
+ 
 // ideia q veio do nada => colocar uma contagem de usuarios p cada livro no db,
 // quando a contagem chegar a 0 (removendo livro da estante), o livro se apaga 
 
@@ -13,77 +12,27 @@ const getLivro = booksModel.getLivro;
 // updateTempoLido()   :  Atualiza só o tempo lido
 // updatePagLidas()    :  Atualiza só o mnumero de páginas
 
-
-
 //TERMINADA ( por enauanto )
+
 async function insertBook(
     userId: number,
     titulo: string,
     desc: string, 
-    autores: Array<string>, 
-    generos: Array<string>,
     totalPag: number, 
-    bookUrl: string,
+    autores: Array<string> | undefined, 
+    generos: Array<string> | undefined,
+    bookUrl: string | undefined,
 ){
     try{
-
-        let livro = await prisma.livro.findUnique({
-            where: {
-                bookUrl: bookUrl,
-            },
-            select: {
-                idlivro: true,
-            }
-        });
-
-        if(!livro){ // cria o livro 
-            let generosConOrCreate: Array<any> = [];
-            generos.forEach( (genero) => {
-                generosConOrCreate.push({ where: { nome: genero }, create: { nome: genero } });
-            });
-
-            if(!autores){
-                livro = await prisma.livro.create({
-                    data: {
-                        titulo: titulo,
-                        sinopse: desc,
-                        totalPag: totalPag,
-                        temBookUrl: true, 
-                        bookUrl: bookUrl,
-                        generos: {
-                            connectOrCreate: generosConOrCreate
-                        }
-                    },
-                    select: {
-                        idlivro: true,
-                    },
-                })
-            } else { 
-                let autoresObj: Array<any> = [];
-                autores.forEach( (autor) => {
-                    autoresObj.push({ nome: autor});
-                });
-                livro = await prisma.livro.create({
-                    data: {
-                        titulo: titulo,
-                        sinopse: desc,
-                        totalPag:  totalPag,
-                        temBookUrl: true, 
-                        bookUrl: bookUrl,
-                        autores: {
-                            createMany: {
-                                data: autoresObj,
-                            },
-                        },
-                        generos: {
-                            connectOrCreate: generosConOrCreate, 
-                        }
-                    },
-                    select: {
-                        idlivro: true,
-                    },
-                })
-            }
+        let livro;
+        if(bookUrl){
+            livro = await findBook(bookUrl);
+        }
+        if(!livro){
+            livro = await newBook(titulo, desc, totalPag, autores, generos, bookUrl);
+        }
+        if(!livro){
+            return null;
         }
 
         console.log("ID do Livro registrado: " + livro.idlivro+ "\nID do Usuario do registro: "+ userId);
@@ -122,6 +71,7 @@ async function insertBook(
         return null;
     }
 } 
+
 //TERMINADA ( por enquanto )
 
 async function removeBook(livroId: number, userId: number){
@@ -162,12 +112,18 @@ async function removeBook(livroId: number, userId: number){
     }
 }
 
-async function updateRegistro(tempoLido: number, paginasLidas: number, livroId: number, userId: number){
+async function updateRegistro(
+    data: {
+        tempo_lido?: number,
+        paginas_lidas?: number
+    },
+    livroId: number,
+    userId: number
+){
     try{
-        let livro = await getLivro(livroId)
+        let livro = await getBook(livroId)
         let registro = await getRegistro(livroId, userId);
-
-        if(livro && registro && paginasLidas <= livro.totalPag){
+        if (livro && registro && Object.keys(data).length != 0 && (!data.paginas_lidas || data.paginas_lidas < livro.totalPag)){
             return await prisma.registro_livro.update({
                 where: {
                     idlivro_idleitor: {
@@ -175,10 +131,7 @@ async function updateRegistro(tempoLido: number, paginasLidas: number, livroId: 
                         idlivro: livroId,
                     }
                 },
-                data: {
-                    tempo_lido: tempoLido, 
-                    paginas_lidas: paginasLidas,
-                },
+                data: data,
                 select: {
                     idleitor: true,
                     idlivro: true ,
@@ -202,78 +155,45 @@ async function updateRegistro(tempoLido: number, paginasLidas: number, livroId: 
 }
 
 
-async function updatePagLidas(paginasLidas: number, livroId: number, userId: number){
-    try{
-        let livro = await getLivro(livroId)
-        let registro = await getRegistro(livroId, userId);
-
-        if(registro && livro && paginasLidas <= livro.totalPag){
-            return await prisma.registro_livro.update({
-                where: {
-                    idlivro_idleitor: {
-                        idleitor: userId,
-                        idlivro: livroId,
-                    }
-                },
-                data: {
-                    paginas_lidas: paginasLidas,
-                },
-                select: {
-                    idleitor: true,
-                    idlivro: true ,
-                    paginas_lidas: true,
-                    tempo_lido: true,
-                    livro: {
-                        select: { 
-                            titulo: true,
-                            totalPag: true,
+async function getLibrary(userId: number){
+    return await prisma.registro_livro.findMany({
+        where: {
+            idleitor: userId,
+        },
+        select: {
+            idlivro: true,
+            livro: {
+                include: {
+                    autores: {
+                        select: {
+                            nome: true,
+                        },
+                    },
+                    generos: {
+                        select: {
+                            nome: true,
                         }
                     }
-                }
-            });
+                },
+            },
+            paginas_lidas: true,
+            tempo_lido: true,
         }
-        return null
-    } catch (err) {
-        console.log(err);
-        return false;
-    }
+    });
 }
 
-
-async function updateTempoLido(tempoLido: number, livroId: number, userId: number){
-    try{
-        let registro = await getRegistro(livroId, userId);
-
-        if(registro){
-            return await prisma.registro_livro.update({
-                where: {
-                    idlivro_idleitor: {
-                        idleitor: userId,
-                        idlivro: livroId,
-                    }
-                },
-                data: {
-                    tempo_lido: tempoLido, 
-                },
-                select: {
-                    idleitor: true,
-                    idlivro: true ,
-                    paginas_lidas: true,
-                    tempo_lido: true,
-                    livro: {
-                        select: { 
-                            titulo: true,
-                            totalPag: true,
-                        }
-                    }
-                }
-            });
-        } 
-        return null
-    }  catch (err) {
-        console.log(err);
-        return false;
-    }
+export const libModel = { 
+    insertBook, 
+    removeBook, 
+    updateRegistro,
+    getLibrary,
+} // Exporta separado e junto?
+export {
+    insertBook, 
+    removeBook, 
+    updateRegistro, 
+    getLibrary,
+    ResultsLibrary,
 }
 
 async function getRegistro(livroId: number, userId: number){
@@ -287,18 +207,24 @@ async function getRegistro(livroId: number, userId: number){
     })
 }
 
-export const libModel = { 
-    insertBook, 
-    removeBook, 
-    updateTempoLido, 
-    updatePagLidas, 
-    updateRegistro 
-}
 
-export {
-    insertBook, 
-    removeBook, 
-    updateTempoLido, 
-    updatePagLidas, 
-    updateRegistro 
+interface ResultsLibrary{
+    livro: {
+        autores: {
+            nome: string;
+        }[];
+        generos: {
+            nome: string;
+        }[];
+    } & {
+        idlivro: number;
+        temBookUrl: boolean;
+        bookUrl: string | null;
+        titulo: string;
+        sinopse: string;
+        totalPag: number;
+    };
+    idlivro: number;
+    paginas_lidas: number;
+    tempo_lido: number;
 }
