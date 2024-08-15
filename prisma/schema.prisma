@@ -27,6 +27,7 @@ model livro {
   titulo         String           @db.VarChar(45)
   sinopse        String           @db.MediumText
   totalPag       Int              @db.UnsignedInt @default(dbgenerated("10"))
+  imgUri         String           @db.VarChar(500)
   autores        autores[] 
   generos        genero[]
   registro_livro registro_livro[]

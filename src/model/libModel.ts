@@ -22,6 +22,7 @@ async function insertBook(
     autores: Array<string> | undefined, 
     generos: Array<string> | undefined,
     bookUrl: string | undefined,
+    imgUri: string,
 ){
     try{
         let livro;
@@ -29,7 +30,7 @@ async function insertBook(
             livro = await findBook(bookUrl);
         }
         if(!livro){
-            livro = await newBook(titulo, desc, totalPag, autores, generos, bookUrl);
+            livro = await newBook(titulo, desc, imgUri, totalPag, autores, generos, bookUrl);
         }
         if(!livro){
             return null;
@@ -182,20 +183,6 @@ async function getLibrary(userId: number){
     });
 }
 
-export const libModel = { 
-    insertBook, 
-    removeBook, 
-    updateRegistro,
-    getLibrary,
-} // Exporta separado e junto?
-export {
-    insertBook, 
-    removeBook, 
-    updateRegistro, 
-    getLibrary,
-    ResultsLibrary,
-}
-
 async function getRegistro(livroId: number, userId: number){
     return await prisma.registro_livro.findUnique({
         where: {
@@ -203,9 +190,31 @@ async function getRegistro(livroId: number, userId: number){
                 idleitor: userId,
                 idlivro: livroId,
             }
+        },
+        select: {
+            idlivro: true,
+            paginas_lidas: true,
+            tempo_lido: true,
         }
     })
 }
+export const libModel = { 
+    insertBook, 
+    removeBook, 
+    updateRegistro,
+    getLibrary,
+    getRegistro,
+} // Exporta separado e junto - nsei se é uma boa
+export {
+    insertBook, 
+    removeBook, 
+    updateRegistro, 
+    getLibrary,
+    getRegistro,
+    ResultsLibrary,
+}
+
+
 
 
 interface ResultsLibrary{

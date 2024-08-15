@@ -1,3 +1,4 @@
+import { findBook } from "../model/booksModel";
 import { libModel } from "../model/libModel";
 
 const googleKey = process.env.GOOGLE_API_KEY;
@@ -74,17 +75,38 @@ async function getLibrary(userId: number){
     }
 }
 
+async function getRegistro(userId: number, bookUrl: string){
+    let book = await findBook(bookUrl);
+    if(book){
+        let response = await libModel.getRegistro(book.idlivro, userId);
+        if(response){
+            return {
+                'status': 200,
+                'registro': response,
+                'message': 'ok',
+            }
+        }
+    }
+    return {
+        'status': 200,
+        'message': 'Registro não existe'
+    }
+    
+}
+
 async function addBookExistente(bookUrl: string, userId: number){
     try{
         let response = await fetch(`https://www.googleapis.com/books/v1/volumes/${bookUrl}?key=${googleKey}`).catch( (err) => undefined);
         let bookExists = await response?.json();
         let categories = bookExists?.volumeInfo.categories[0].split(' / ');
         let { authors, title, description, pageCount } = bookExists?.volumeInfo;
+        let imgLinks = bookExists?.volumeInfo.imageLinks;
+        let imgUri: string = imgLinks.medium? imgLinks.medium : imgLinks.large? imgLinks.large : imgLinks.small? imgLinks.small : imgLinks.thumbnail  
         console.log(title, authors, categories, pageCount);
 
         if(bookExists){
             //bookExists.volumeInfo.title
-            let registro = await libModel.insertBook(userId, title, description, pageCount, authors, categories, bookUrl);
+            let registro = await libModel.insertBook(userId, title, description, pageCount, authors, categories, bookUrl, imgUri);
             if(!registro) {
                 console.log("Registro não criado, provavelmente já existe :)");
                 return{
@@ -212,6 +234,7 @@ async function removeBook(livroId: number, userId: number){
 
 export const libController = {
     getLibrary,
+    getRegistro,
     addBookExistente,
     // addBookNovo,
     updateRegistro,

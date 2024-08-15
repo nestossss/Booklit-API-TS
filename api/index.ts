@@ -2,12 +2,12 @@ require('dotenv').config();
 import express = require('express');
 const app = express();
 
-import { checkToken } from './util/token';
+import { checkToken } from '../src/util/token';
 
-import { router as authRouter } from "./routes/authRouter";
-import { router as booksRouter }  from "./routes/booksRouter";
-import { router as libRouter } from "./routes/libRouter";
-import { router as streakRouter } from "./routes/streakRouter";
+import { router as authRouter } from "../src/routes/authRouter";
+import { router as booksRouter }  from "../src/routes/booksRouter";
+import { router as libRouter } from "../src/routes/libRouter";
+import { router as streakRouter } from "../src/routes/streakRouter";
 
 // const booksRoutes = require("./routes/books");
 
@@ -28,9 +28,7 @@ app.use("/streak", checkToken, streakRouter);
 
 app.use("/lib", checkToken, libRouter);
 
-
 // app.use("/profile", profileRouter);
 
-app.listen(80, "0.0.0.0", () =>{
-    console.log("server running, daleee");
-})
+
+export default app;

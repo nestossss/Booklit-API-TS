@@ -4,7 +4,7 @@ import { authUser, checkUser, register } from '../controller/authController'
 
 router.post("/checkUser", async (req, res) => {
     try { 
-        let resBody = await checkUser(req.body.username)
+        let resBody = await checkUser(req.body.username.trim())
         res.status(resBody.status).json(resBody);
     } catch (err) { 
         res.status(400).send("parametro");
@@ -13,7 +13,7 @@ router.post("/checkUser", async (req, res) => {
 
 router.post("/login", async (req, res)=>{
     try {
-        let [username, password] = [req.body.username, req.body.password];
+        let [username, password] = [req.body.username?.trim(), req.body.password?.trim()];
         let resBody;
         if(!username && !password)
             resBody = { "status":200, "message":"ta faltando username e password"};
@@ -21,7 +21,6 @@ router.post("/login", async (req, res)=>{
             resBody = { "status":200,"message": "ta faltando username"};
         else if (!password)
             resBody = { "status":200, "message":"ta faltando password"};
-
         else resBody = await authUser(username, password);
         res.status(resBody.status).json(resBody);
     } catch(err){ 

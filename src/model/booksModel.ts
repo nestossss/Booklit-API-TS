@@ -3,6 +3,7 @@ import prisma from "./client/dbclient";
 async function newBook(
    titulo: string,
    desc: string,
+   imgUri: string,
    totalPag: number, 
    autores: Array<string> | undefined, 
    generos: Array<string> | undefined, 
@@ -12,6 +13,7 @@ async function newBook(
        let data: any = {
            titulo: titulo,
            sinopse: desc,
+           imgUri: imgUri,
            totalPag: totalPag,
        }
        
