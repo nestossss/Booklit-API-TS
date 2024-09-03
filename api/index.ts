@@ -30,5 +30,9 @@ app.use("/lib", checkToken, libRouter);
 
 // app.use("/profile", profileRouter);
 
+app.listen( () => {
+    console.log("listening")
+})
+
 
 export default app;
