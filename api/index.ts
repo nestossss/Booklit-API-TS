@@ -30,7 +30,7 @@ app.use("/lib", checkToken, libRouter);
 
 // app.use("/profile", profileRouter);
 
-app.listen( () => {
+app.listen(80, () => {
     console.log("listening")
 })
 
