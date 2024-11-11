@@ -2,6 +2,7 @@ import e from 'express';
 const router = e.Router();
 import { libController } from '../controller/libController';
 import { getBook } from '../model/booksModel';
+import { Note, Quote } from '../util/types';
 
 router.get("/", async (req, res, next) => {
     let userId: number = res.locals.userId;
@@ -103,5 +104,35 @@ router.delete("/remover", async (req, res) => {
     return res.status(400).send("Falta bookId nos parametros");
 
 });
+
+router.put("/atualizar/nota", async (req, res) => {
+    if(typeof req.query.idlivro != 'string' ) return res.sendStatus(400);
+    let bookId = parseInt(req.query.idlivro.trim());
+    let userId: number = res.locals.userId;
+    
+    let { title, content, page, line, type }: { 
+        title: string, 
+        content: string, 
+        page?: string, 
+        line?: string, 
+        type: "quote" | "note"
+    } = req.body;
+    if((!title || !content || !type) || (type == 'quote' && !page)) return res.status(400).send("Faltando informações no body");
+
+    if(type != 'quote' && type != 'note') return res.status(400).send("O tipo de anotação pode ser 'note' ou 'quote'")
+    if(type == 'quote' && !page) return res.status(400).send("Não é possível adicionar uma citação sem informar a página");
+    let infoNote = {title, content, page: page? parseInt(page): undefined, line: line? parseInt(line): undefined, type}
+    let body = await libController.addNota(bookId, userId, infoNote)
+    return res.status(body?.erro? 500:200).send(body);
+})
+
+router.delete("/atualizar/nota", async (req, res) =>{
+    if(typeof req.query.idnota != 'string' ) return res.sendStatus(400);
+    let noteId = parseInt(req.query.idnota.trim());
+    let userId: number = res.locals.userId;
+
+    let body = await libController.removeNota(noteId, userId);
+    return res.status(body.status).send(body);
+})
 
 export { router };

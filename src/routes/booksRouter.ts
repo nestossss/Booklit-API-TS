@@ -11,6 +11,9 @@ router.get("/info", checkToken, (req, res)=>{
     res.send("Não implementado")
 })
 
+router.get("/resenhas", checkToken, (req, res) => {
+    res.send("não implementado");
+})
 
 router.get("/popular", (req, res)=>{
     res.send("Não implementado")

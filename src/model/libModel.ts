@@ -1,5 +1,6 @@
 import prisma from "./client/dbclient";
 import { findBook, getBook, newBook } from './booksModel'
+import { Note, Quote } from "../util/types";
  
 // ideia q veio do nada => colocar uma contagem de usuarios p cada livro no db,
 // quando a contagem chegar a 0 (removendo livro da estante), o livro se apaga 
@@ -163,6 +164,7 @@ async function getLibrary(userId: number){
         },
         select: {
             idlivro: true,
+            nota: true,
             livro: {
                 include: {
                     autores: {
@@ -198,12 +200,60 @@ async function getRegistro(livroId: number, userId: number){
         }
     })
 }
+
+async function addNota(livroId: number, userId: number, nota: Note | Quote){
+    try {
+        return await prisma.nota.create({ 
+            data: {
+                title: nota.title,
+                content: nota.content,
+                page: nota.type == "quote"? nota.page : undefined,
+                line: nota.type == "quote" && nota.line ? nota.line : undefined,
+                type: nota.type,
+                registro_livro: {
+                    connect: {
+                        idleitor_idlivro: {
+                            idleitor: userId,
+                            idlivro: livroId,
+                        }
+                    }
+                },
+            },
+        });
+    } catch(err){
+        console.log(err);
+        return null
+    }
+}
+
+async function deleteNota(noteId: number, userId: number){
+    try{
+        let noteExists = await prisma.nota.findUnique({
+            where: {
+                idnota: noteId,
+            }
+        })
+        if(!noteExists || noteExists.idleitor != userId) return false;
+        let delNote = await prisma.nota.delete({
+            where: {
+                idnota: noteId
+            }, 
+        }) 
+        if(!delNote) return null;
+        return true
+    } catch(err){
+
+    }
+}
+
 export const libModel = { 
     insertBook, 
     removeBook, 
     updateRegistro,
     getLibrary,
     getRegistro,
+    addNota,
+    deleteNota
 } // Exporta separado e junto - nsei se é uma boa
 export {
     insertBook, 
@@ -211,6 +261,7 @@ export {
     updateRegistro, 
     getLibrary,
     getRegistro,
+    addNota,
     ResultsLibrary,
 }
 
@@ -225,7 +276,6 @@ interface ResultsLibrary{
         generos: {
             nome: string;
         }[];
-    } & {
         idlivro: number;
         temBookUrl: boolean;
         bookUrl: string | null;

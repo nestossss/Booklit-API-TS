@@ -1,15 +1,8 @@
 import { findBook } from "../model/booksModel";
 import { libModel } from "../model/libModel";
+import { Note, Quote } from "../util/types";
 
 const googleKey = process.env.GOOGLE_API_KEY;
-
-interface BookCreate {
-    titulo: string,
-    desc: string,
-    numPag: number, 
-    generos?: Array<string>, 
-    autores?: Array<string>
-}
 
 interface Book{
     autores?: {
@@ -54,6 +47,7 @@ async function getLibrary(userId: number){
             }
             return {
                 livro,
+                "notas": data.nota,
                 "paginasLidas": data.paginas_lidas,
                 "tempoLido": data.tempo_lido,
             }
@@ -232,6 +226,61 @@ async function removeBook(livroId: number, userId: number){
 }
 
 
+async function addNota(livroId: number, userId: number, nota: Note | Quote){
+    try{
+        let newNote = await libModel.addNota(livroId, userId, nota);
+        console.log(newNote)
+        if(newNote){    
+            return {
+                "status": 200,
+                "message": "Nova nota adicionada",
+                "nota": {
+                    ...newNote,
+                    idlivro: undefined,
+                    idleitor: undefined,
+                }
+            }
+        }
+        return {
+            "status": 500,
+            "erro": "algo deu errado"
+        }
+    } catch(err) {
+        console.log(err);
+        return {
+            "status": 500,
+            "erro": "algo deu errado"
+        }
+    }
+}
+
+async function removeNota(noteId: number, userId: number){
+    try{
+        let deletedNote = await libModel.deleteNota(noteId, userId);
+        if(deletedNote){
+            return {
+                "status": 200,
+                "message": "Nota removida"
+            }
+        }
+        if(deletedNote == false){
+            return {
+                "status": 404,
+                "message": "Nota não existe"
+            }
+        }
+        return {
+            "status": 500,
+            "message": "Algo deu errado"
+        }
+    } catch(err) {
+        console.log(err);
+        return {
+            "status": 500,
+            "erro": "Algo deu errado"
+        }
+    }
+}
 export const libController = {
     getLibrary,
     getRegistro,
@@ -241,6 +290,8 @@ export const libController = {
     updateTempoLido,
     updatePagLidas,
     removeBook,
+    addNota,
+    removeNota
 }
 
 /*  utilidade - utilidade - utilidade - utilidade - utilidade */ 
