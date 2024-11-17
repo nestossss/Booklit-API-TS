@@ -125,7 +125,7 @@ async function updateRegistro(
     try{
         let livro = await getBook(livroId)
         let registro = await getRegistro(livroId, userId);
-        if (livro && registro && Object.keys(data).length != 0 && (!data.paginas_lidas || data.paginas_lidas < livro.totalPag)){
+        if (livro && registro && Object.keys(data).length != 0 && (!data.paginas_lidas || data.paginas_lidas <= livro.totalPag)){
             return await prisma.registro_livro.update({
                 where: {
                     idlivro_idleitor: {
@@ -197,6 +197,7 @@ async function getRegistro(livroId: number, userId: number){
             idlivro: true,
             paginas_lidas: true,
             tempo_lido: true,
+            nota: true,
         }
     })
 }
