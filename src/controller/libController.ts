@@ -226,9 +226,9 @@ async function removeBook(livroId: number, userId: number){
 }
 
 
-async function addNota(livroId: number, userId: number, nota: Note | Quote){
+async function addNota(bookUrl: string, userId: number, nota: Note | Quote){
     try{
-        let newNote = await libModel.addNota(livroId, userId, nota);
+        let newNote = await libModel.addNota(bookUrl, userId, nota);
         console.log(newNote)
         if(newNote){    
             return {

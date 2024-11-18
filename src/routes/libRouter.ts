@@ -106,9 +106,9 @@ router.delete("/remover", async (req, res) => {
 });
 
 router.put("/atualizar/nota", async (req, res) => {
-    if(typeof req.query.idlivro != 'string' ) return res.sendStatus(400);
-    let bookId = parseInt(req.query.idlivro.trim());
+    let bookId = req.query.bookUrl?.toString();
     let userId: number = res.locals.userId;
+    if(!bookId) return res.status(400).send("bookUrl em query faltando");
     
     let { title, content, page, line, type }: { 
         title: string, 
@@ -117,6 +117,7 @@ router.put("/atualizar/nota", async (req, res) => {
         line?: string, 
         type: "quote" | "note"
     } = req.body;
+
     if((!title || !content || !type) || (type == 'quote' && !page)) return res.status(400).send("Faltando informações no body");
 
     if(type != 'quote' && type != 'note') return res.status(400).send("O tipo de anotação pode ser 'note' ou 'quote'")
