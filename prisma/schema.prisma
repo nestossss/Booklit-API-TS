@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL_LOCAL")
+  url      = env("DATABASE_URL_DEV")
 }
 
 model leitor {
@@ -56,8 +56,8 @@ model nota {
   page             Int?      @db.UnsignedSmallInt
   line             Int?      @db.UnsignedSmallInt
   type             noteType @default(note)
-  createdAt        DateTime @db.Timestamp() @default(now())
-  updatedAt        DateTime @db.Timestamp() @default(now()) @updatedAt
+  createdAt        DateTime @db.Timestamp() @default(dbgenerated("now()"))
+  updatedAt        DateTime @db.Timestamp() @default(dbgenerated("now()")) @updatedAt
   idlivro          Int      @db.UnsignedInt
   idleitor         Int      @db.UnsignedInt
   registro_livro   registro_livro @relation(fields: [idleitor, idlivro], references: [idleitor, idlivro])
