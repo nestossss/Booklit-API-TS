@@ -24,4 +24,8 @@ app.use("/streak", checkToken, streakRouter);
 app.use("/lib", checkToken, libRouter);
 app.use("/profile", checkToken, profileRouter);
 
+app.listen( () => {
+    console.log("listening")
+})
+
 export default app;
