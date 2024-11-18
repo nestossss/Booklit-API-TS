@@ -205,7 +205,7 @@ async function getRegistro(livroId: number, userId: number){
 async function addNota(bookUrl: string, userId: number, nota: Note | Quote){
     try {
         let idlivro = (await findBook(bookUrl))?.idlivro;
-        if(!idlivro) return null
+        if(!idlivro) return false
         return await prisma.nota.create({ 
             data: {
                 title: nota.title,

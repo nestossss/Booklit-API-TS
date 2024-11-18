@@ -123,8 +123,8 @@ router.put("/atualizar/nota", async (req, res) => {
     if(type != 'quote' && type != 'note') return res.status(400).send("O tipo de anotação pode ser 'note' ou 'quote'")
     if(type == 'quote' && !page) return res.status(400).send("Não é possível adicionar uma citação sem informar a página");
     let infoNote = {title, content, page: page? parseInt(page): undefined, line: line? parseInt(line): undefined, type}
-    let body = await libController.addNota(bookId, userId, infoNote)
-    return res.status(body?.erro? 500:200).send(body);
+    let body = await libController.addNota(bookId, userId, infoNote);
+    return res.status(body.status).send(body);
 })
 
 router.patch("/atualizar/nota", async (req, res) => {

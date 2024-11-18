@@ -241,6 +241,12 @@ async function addNota(bookUrl: string, userId: number, nota: Note | Quote){
                 }
             }
         }
+        if(newNote === false){
+            return {
+                "status": 404,
+                "message": "Livro não existe"
+            }
+        }
         return {
             "status": 500,
             "erro": "algo deu errado"
