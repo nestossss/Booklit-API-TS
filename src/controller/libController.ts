@@ -1,15 +1,8 @@
 import { findBook } from "../model/booksModel";
 import { libModel } from "../model/libModel";
+import { Note, Quote } from "../util/types";
 
 const googleKey = process.env.GOOGLE_API_KEY;
-
-interface BookCreate {
-    titulo: string,
-    desc: string,
-    numPag: number, 
-    generos?: Array<string>, 
-    autores?: Array<string>
-}
 
 interface Book{
     autores?: {
@@ -54,6 +47,7 @@ async function getLibrary(userId: number){
             }
             return {
                 livro,
+                "notas": data.nota,
                 "paginasLidas": data.paginas_lidas,
                 "tempoLido": data.tempo_lido,
             }
@@ -232,6 +226,97 @@ async function removeBook(livroId: number, userId: number){
 }
 
 
+async function addNota(bookUrl: string, userId: number, nota: Note | Quote){
+    try{
+        let newNote = await libModel.addNota(bookUrl, userId, nota);
+        console.log(newNote)
+        if(newNote){    
+            return {
+                "status": 200,
+                "message": "Nova nota adicionada",
+                "nota": {
+                    ...newNote,
+                    idlivro: undefined,
+                    idleitor: undefined,
+                }
+            }
+        }
+        if(newNote === false){
+            return {
+                "status": 404,
+                "message": "Livro não existe"
+            }
+        }
+        return {
+            "status": 500,
+            "erro": "algo deu errado"
+        }
+    } catch(err) {
+        console.log(err);
+        return {
+            "status": 500,
+            "erro": "algo deu errado"
+        }
+    }
+}
+
+async function updateNota(noteId: number, userId: number, updatedData: Partial<Note | Quote>) {
+    try {
+        let updatedNote = await libModel.updateNota(noteId, userId, updatedData);
+
+        if (updatedNote) {
+            return {
+                status: 200,
+                message: "Nota atualizada com sucesso",
+                nota: {
+                    ...updatedNote,
+                    idlivro: undefined,
+                    idleitor: undefined,
+                },
+            };
+        }
+
+        return {
+            status: 404,
+            message: "Nota não encontrada ou você não tem permissão para atualizá-la",
+        };
+    } catch (err) {
+        console.log(err);
+        return {
+            status: 500,
+            erro: "Erro ao tentar atualizar a nota",
+        };
+    }
+}
+
+
+async function removeNota(noteId: number, userId: number){
+    try{
+        let deletedNote = await libModel.deleteNota(noteId, userId);
+        if(deletedNote){
+            return {
+                "status": 200,
+                "message": "Nota removida"
+            }
+        }
+        if(deletedNote == false){
+            return {
+                "status": 404,
+                "message": "Nota não existe"
+            }
+        }
+        return {
+            "status": 500,
+            "message": "Algo deu errado"
+        }
+    } catch(err) {
+        console.log(err);
+        return {
+            "status": 500,
+            "erro": "Algo deu errado"
+        }
+    }
+}
 export const libController = {
     getLibrary,
     getRegistro,
@@ -241,6 +326,9 @@ export const libController = {
     updateTempoLido,
     updatePagLidas,
     removeBook,
+    addNota,
+    updateNota,
+    removeNota
 }
 
 /*  utilidade - utilidade - utilidade - utilidade - utilidade */ 

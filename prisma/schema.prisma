@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL_DEV")
 }
 
 model leitor {
@@ -41,10 +41,31 @@ model registro_livro {
   idleitor         Int      @db.UnsignedInt
   leitor           leitor   @relation(fields: [idleitor], references: [idleitor], onUpdate: Restrict, map: "fk_leitor")
   livro            livro    @relation(fields: [idlivro], references: [idlivro], onUpdate: Restrict, map: "fk_livro")
+  nota             nota[]
 
   @@id([idlivro, idleitor])
   @@index([idleitor], map: "fk_leitor_idx")
   @@index([idlivro], map: "fk_livro")
+  @@unique([idleitor, idlivro])
+}
+
+model nota {
+  idnota           Int      @id @unique(map:"idnota") @default(autoincrement()) @db.UnsignedInt
+  title            String   @db.VarChar(70)
+  content         String   @db.TinyText
+  page             Int?      @db.UnsignedSmallInt
+  line             Int?      @db.UnsignedSmallInt
+  type             noteType @default(note)
+  createdAt        DateTime @db.Timestamp() @default(dbgenerated("now()"))
+  updatedAt        DateTime @db.Timestamp() @default(dbgenerated("now()")) @updatedAt
+  idlivro          Int      @db.UnsignedInt
+  idleitor         Int      @db.UnsignedInt
+  registro_livro   registro_livro @relation(fields: [idleitor, idlivro], references: [idleitor, idlivro])
+
+}
+enum noteType {
+  note
+  quote
 }
 
 model autores {

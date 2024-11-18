@@ -1,5 +1,6 @@
 import prisma from "./client/dbclient";
 import { findBook, getBook, newBook } from './booksModel'
+import { Note, Quote } from "../util/types";
  
 // ideia q veio do nada => colocar uma contagem de usuarios p cada livro no db,
 // quando a contagem chegar a 0 (removendo livro da estante), o livro se apaga 
@@ -124,7 +125,7 @@ async function updateRegistro(
     try{
         let livro = await getBook(livroId)
         let registro = await getRegistro(livroId, userId);
-        if (livro && registro && Object.keys(data).length != 0 && (!data.paginas_lidas || data.paginas_lidas < livro.totalPag)){
+        if (livro && registro && Object.keys(data).length != 0 && (!data.paginas_lidas || data.paginas_lidas <= livro.totalPag)){
             return await prisma.registro_livro.update({
                 where: {
                     idlivro_idleitor: {
@@ -163,6 +164,7 @@ async function getLibrary(userId: number){
         },
         select: {
             idlivro: true,
+            nota: true,
             livro: {
                 include: {
                     autores: {
@@ -195,15 +197,96 @@ async function getRegistro(livroId: number, userId: number){
             idlivro: true,
             paginas_lidas: true,
             tempo_lido: true,
+            nota: true,
         }
     })
 }
+
+async function addNota(bookUrl: string, userId: number, nota: Note | Quote){
+    try {
+        let idlivro = (await findBook(bookUrl))?.idlivro;
+        if(!idlivro) return false
+        return await prisma.nota.create({ 
+            data: {
+                title: nota.title,
+                content: nota.content,
+                page: nota.type == "quote"? nota.page : undefined,
+                line: nota.type == "quote" && nota.line ? nota.line : undefined,
+                type: nota.type,
+                registro_livro: {
+                    connect: {
+                        idleitor_idlivro: {
+                            idleitor: userId,
+                            idlivro: idlivro,
+                        }
+                    }
+                },
+            },
+        });
+    } catch(err){
+        console.log(err);
+        return null
+    }
+}
+
+async function updateNota(noteId: number, userId: number, updatedData: Partial<Note | Quote>) {
+    try {
+        let noteExists = await prisma.nota.findUnique({
+            where: { idnota: noteId },
+        });
+
+        if (!noteExists || noteExists.idleitor !== userId) {
+            return false;
+        }
+
+        let updatedNote = await prisma.nota.update({
+            where: { idnota: noteId },
+            data: {
+                title: updatedData.title || noteExists.title,
+                content: updatedData.content || noteExists.content,
+                page: updatedData.type === "quote" ? updatedData.page : noteExists.page,
+                line: updatedData.type === "quote" && updatedData.line ? updatedData.line : noteExists.line,
+                type: updatedData.type || noteExists.type,
+            },
+        });
+
+        return updatedNote;
+    } catch (err) {
+        console.log(err);
+        return null;
+    }
+}
+
+
+async function deleteNota(noteId: number, userId: number){
+    try{
+        let noteExists = await prisma.nota.findUnique({
+            where: {
+                idnota: noteId,
+            }
+        })
+        if(!noteExists || noteExists.idleitor != userId) return false;
+        let delNote = await prisma.nota.delete({
+            where: {
+                idnota: noteId
+            }, 
+        }) 
+        if(!delNote) return null;
+        return true
+    } catch(err){
+
+    }
+}
+
 export const libModel = { 
     insertBook, 
     removeBook, 
     updateRegistro,
     getLibrary,
     getRegistro,
+    addNota,
+    updateNota,
+    deleteNota
 } // Exporta separado e junto - nsei se é uma boa
 export {
     insertBook, 
@@ -211,6 +294,9 @@ export {
     updateRegistro, 
     getLibrary,
     getRegistro,
+    addNota,
+    updateNota,
+    deleteNota,
     ResultsLibrary,
 }
 
@@ -225,7 +311,6 @@ interface ResultsLibrary{
         generos: {
             nome: string;
         }[];
-    } & {
         idlivro: number;
         temBookUrl: boolean;
         bookUrl: string | null;

@@ -8,27 +8,25 @@ import { router as authRouter } from "../src/routes/authRouter";
 import { router as booksRouter }  from "../src/routes/booksRouter";
 import { router as libRouter } from "../src/routes/libRouter";
 import { router as streakRouter } from "../src/routes/streakRouter";
+import { router as profileRouter} from "../src/routes/profileRouter";
 
 // const booksRoutes = require("./routes/books");
 
 app.use(express.urlencoded({ 
     extended: true
 }))
-
-
 app.get("/", (req, res)=>{
     res.send("As rotas são /user \n(Até o momento)");
 })
-
 app.use("/auth", authRouter);
-
 app.use("/books", checkToken, booksRouter);
-
 app.use("/streak", checkToken, streakRouter);
-
 app.use("/lib", checkToken, libRouter);
+app.use("/profile", checkToken, profileRouter);
 
-// app.use("/profile", profileRouter);
+app.listen(4500, () => {
+    console.log("listening")
+})
 
 
 export default app;
