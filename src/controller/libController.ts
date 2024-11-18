@@ -254,6 +254,36 @@ async function addNota(livroId: number, userId: number, nota: Note | Quote){
     }
 }
 
+async function updateNota(noteId: number, userId: number, updatedData: Partial<Note | Quote>) {
+    try {
+        let updatedNote = await libModel.updateNota(noteId, userId, updatedData);
+
+        if (updatedNote) {
+            return {
+                status: 200,
+                message: "Nota atualizada com sucesso",
+                nota: {
+                    ...updatedNote,
+                    idlivro: undefined,
+                    idleitor: undefined,
+                },
+            };
+        }
+
+        return {
+            status: 404,
+            message: "Nota não encontrada ou você não tem permissão para atualizá-la",
+        };
+    } catch (err) {
+        console.log(err);
+        return {
+            status: 500,
+            erro: "Erro ao tentar atualizar a nota",
+        };
+    }
+}
+
+
 async function removeNota(noteId: number, userId: number){
     try{
         let deletedNote = await libModel.deleteNota(noteId, userId);
@@ -291,6 +321,7 @@ export const libController = {
     updatePagLidas,
     removeBook,
     addNota,
+    updateNota,
     removeNota
 }
 

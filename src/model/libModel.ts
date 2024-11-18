@@ -227,6 +227,35 @@ async function addNota(livroId: number, userId: number, nota: Note | Quote){
     }
 }
 
+async function updateNota(noteId: number, userId: number, updatedData: Partial<Note | Quote>) {
+    try {
+        let noteExists = await prisma.nota.findUnique({
+            where: { idnota: noteId },
+        });
+
+        if (!noteExists || noteExists.idleitor !== userId) {
+            return false;
+        }
+
+        let updatedNote = await prisma.nota.update({
+            where: { idnota: noteId },
+            data: {
+                title: updatedData.title || noteExists.title,
+                content: updatedData.content || noteExists.content,
+                page: updatedData.type === "quote" ? updatedData.page : noteExists.page,
+                line: updatedData.type === "quote" && updatedData.line ? updatedData.line : noteExists.line,
+                type: updatedData.type || noteExists.type,
+            },
+        });
+
+        return updatedNote;
+    } catch (err) {
+        console.log(err);
+        return null;
+    }
+}
+
+
 async function deleteNota(noteId: number, userId: number){
     try{
         let noteExists = await prisma.nota.findUnique({
@@ -254,6 +283,7 @@ export const libModel = {
     getLibrary,
     getRegistro,
     addNota,
+    updateNota,
     deleteNota
 } // Exporta separado e junto - nsei se é uma boa
 export {
@@ -263,6 +293,8 @@ export {
     getLibrary,
     getRegistro,
     addNota,
+    updateNota,
+    deleteNota,
     ResultsLibrary,
 }
 
